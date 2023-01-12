@@ -22,15 +22,17 @@ if [[ ! $REPLY =~ ^[Yy]$ ]]; then
     exit 1
 fi
 
-for i in $(find . -name $1);
-do
-    # echo "old_name=$i"
-    j="$(echo $i | sed -E "$2")"
-    # echo "new_name=$j"
+OIFS=$IFS; IFS=$'\n'; files=($(ls)); IFS=$OIFS;
 
-    if [[ "$i" == "$j" ]]; then
+for f in "${files[@]}";
+do
+    # echo "old_name='$f'"
+    j="$(echo $f | sed -r "$2")"
+    # echo "new_name='$j'"
+   
+    if [[ "$f" == "$j" ]]; then
         continue
     fi
     
-    mv "$i" "$j";
+    mv "$f" "$j";
 done
