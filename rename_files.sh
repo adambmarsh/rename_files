@@ -1,38 +1,83 @@
-#!/bin/sh
+#!/bin/bash
+shopt -s lastpipe
 
-if [[ -z $1 ]]; then
-    echo "File name pattern cannot be empty."
-    echo "Use a literal file name or wildcards, e.g. '*.mp4'"
-    exit 1
-fi 
-if [[ -z $2 ]]; then
-    echo "Replacement pattern (regex) cannot be empty."
-    echo "Use SED syntax to specify the pattern to match and the replacement. Examples:"
-    echo "  's/blah_([a-z_]+\.)/\U\1/g' -- remove 'blah_' and turn the part in brackets to upper case"
-    echo "  's/[-]{1,1}[\_a-zA-Z0-9\ \-]+(\.[a-zA-Z0-9]{3,4})$/\1/g' -- remove all from dash to extension in file name, but keep extension"
-    exit 2
-fi
+cur_dir="$(pwd)"
 
-echo "Renaming '$1' using the pattern '$2'"
-read -p "Press Y to continue or any other key to abort ... " -n 1 -r
+Usage() {
+    echo "Rename files in current directory using regex and sed. @AB"
+    echo "Usage:"
+    printf "\n    -s \"input file spec/pattern\", use a literal file name or wildcards, e.g. \'*.mp4\'\n"
+    echo "    -p \"replacement pattern\", examples: "
+    printf "       's/blah_([a-z_]+\.)/\\\U\1/g' -- remove 'blah_' and turn the part in brackets to upper case\n"
+    printf "       's/[-]{1,1}[\_a-zA-Z0-9\ \-]+(\.[a-zA-Z0-9]{3,4})$/\1/g' -- remove all from dash to extension in file name, but keep extension\n"
+    echo "    --help"
+}
 
-echo -e "\n"
-
-if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+if [ $# -lt 3 ]; then
+    echo "Insufficient arguments ... "
+    echo ""
+    Usage
     exit 1
 fi
 
-OIFS=$IFS; IFS=$'\n'; files=($(ls)); IFS=$OIFS;
-
-for f in "${files[@]}";
+while [ $# -gt 0 ];
 do
-    # echo "old_name='$f'"
-    j="$(echo $f | sed -r "$2")"
+    case "$1" in
+        -s|--file_spec)
+            file_spec="$2"
+            echo "file_spec=""$file_spec"
+            shift
+            ;;
+        -p|--replace_pattern)
+            replace_pattern="$2"
+            shift
+            ;;
+        -h|--help|*)
+            Usage
+            exit 1
+            ;;
+    esac
+    shift
+done
+
+echo "Renaming '$file_spec' using the pattern '$replace_pattern'"
+echo "Presss 'y' to continue, 'n' to abort, followed by Return"
+read -r yn
+
+case $yn in
+    [Yy]*) ;;  
+    [Nn]*) echo "Aborted" ; exit  1 ;;
+esac
+
+finished=false
+
+find "$cur_dir" -type f | while read -r x; do
+    
+    if [ "$x" = "$cur_dir"/"$file_spec" ]; then
+        # echo "old_name='$x'"
+        j="$(echo "$x" | sed -r "$replace_pattern")"
+        # echo "new_name='$j'"
+        
+        mv "$x" "$j";
+        echo "moved ""$x"" to ""$j"
+        finished=true
+    fi
+done
+# echo "finished=""$finished"
+
+if [ $finished = true ]; then
+    exit 0
+fi
+
+find "$cur_dir" -type f | while read -r x; do
+    # echo "old_name='$x'"
+    j="$(echo "$x" | sed -r "$replace_pattern")"
     # echo "new_name='$j'"
-   
-    if [[ "$f" == "$j" ]]; then
+    
+    if [ "$x" = "$j" ]; then
         continue
     fi
     
-    mv "$f" "$j";
+    mv "$x" "$j";
 done
+
