@@ -10,6 +10,8 @@ Usage() {
     echo "    -p \"replacement pattern\", examples: "
     printf "       's/blah_([a-z_]+\.)/\\\U\1/g' -- remove 'blah_' and turn the part in brackets to upper case\n"
     printf "       's/[-]{1,1}[\_a-zA-Z0-9\ \-]+(\.[a-zA-Z0-9]{3,4})$/\1/g' -- remove all from dash to extension in file name, but keep extension\n"
+    printf "       's/([[:upper:]])/\\\u\L\1/g' -- change all upper case chars to lower case\n"
+    printf "       's/\b(.)/\\\u\1/g' -- change first letter of each word to upper case\n"
     echo "    --help"
 }
 
@@ -55,10 +57,11 @@ find "$cur_dir" -type f | while read -r x; do
     
     if [ "$x" = "$cur_dir"/"$file_spec" ]; then
         # echo "old_name='$x'"
-        j="$(echo "$x" | sed -r "$replace_pattern")"
+        base_name=$(basename "$x")
+        j="$(echo "$base_name" | sed -r "$replace_pattern")"
         # echo "new_name='$j'"
         
-        mv "$x" "$j";
+        mv "$x" "$(dirname "$x")"/"$j";
         echo "moved ""$x"" to ""$j"
         finished=true
     fi
@@ -71,13 +74,14 @@ fi
 
 find "$cur_dir" -type f | while read -r x; do
     # echo "old_name='$x'"
-    j="$(echo "$x" | sed -r "$replace_pattern")"
+    base_name=$(basename "$x")
+    j="$(echo "$base_name" | sed -r "$replace_pattern")"
     # echo "new_name='$j'"
     
     if [ "$x" = "$j" ]; then
         continue
     fi
     
-    mv "$x" "$j";
+    mv "$x" "$(dirname "$x")"/"$j";
 done
 
