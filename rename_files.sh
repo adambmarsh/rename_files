@@ -12,6 +12,7 @@ Usage() {
     printf "       's/[-]{1,1}[\_a-zA-Z0-9\ \-]+(\.[a-zA-Z0-9]{3,4})$/\1/g' -- remove all from dash to extension in file name, but keep extension\n"
     printf "       's/([[:upper:]])/\\\u\L\1/g' -- change all upper case chars to lower case\n"
     printf "       's/\b(.)/\\\u\1/g' -- change first letter of each word to upper case\n"
+    printf "       's/(\w)(\w+)+/\U\1\L\2/g' -- make first letter of each word upper case, all other lower case\n"
     echo "    --help"
 }
 
