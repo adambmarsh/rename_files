@@ -27,6 +27,8 @@ if [ $# -lt 3 ]; then
     exit 1
 fi
 
+just_do_it=""
+
 while [ $# -gt 0 ];
 do
     case "$1" in
@@ -39,6 +41,10 @@ do
             replace_pattern="$2"
             shift
             ;;
+        -n|--non_interactive)
+            noninteractive="$2"
+            shift
+            ;;
         -h|--help|*)
             Usage
             exit 1
@@ -48,20 +54,24 @@ do
 done
 
 echo "Renaming '$file_spec' using the pattern '$replace_pattern'"
-echo "Presss 'y' to continue, 'n' to abort, followed by Return"
-read -r yn
+echo "noninteractive=""$noninteractive"
 
-case $yn in
-    [Yy]*) ;;  
-    [Nn]*) echo "Aborted" ; exit  1 ;;
-esac
+if [[ -z "$noninteractive" ]]; then
+    echo "Presss 'y' to continue, 'n' to abort, followed by Return"
+    read -r yn
+
+    case $yn in
+        [Yy]*) ;;
+        [Nn]*) echo "Aborted" ; exit  1 ;;
+    esac
+fi
 
 for x in $file_spec; do
     # echo "old_name='$x'"
     base_name=$(basename "$x")
     j="$(echo "$base_name" | sed -r "$replace_pattern")"
     # echo "new_name='$j'"
-    
+
     mv "$x" "$(dirname "$x")"/"$j";
     echo "moved ""$x"" to ""$j"
 done
