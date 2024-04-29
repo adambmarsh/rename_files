@@ -1,8 +1,20 @@
 #!/bin/bash
+
+me="${0##*/}"
+# echo "$me called"
+# echo
+# echo "# received arguments ------->  ${@}     "
+# echo "# \$1 ----------------------->  $1       "
+# echo "# \$2 ----------------------->  $2       "
+# echo "# \$3 ----------------------->  $3       "
+# echo "# \$4 ----------------------->  $4       "
+# echo "# path to me --------------->  ${0}     "
+# echo "# parent path -------------->  ${0%/*}  "
+# echo "# my name ------------------>  ${0##*/} "
+# echo
+
 shopt -s lastpipe
 shopt -s nullglob
-
-cur_dir="$(pwd)"
 
 Usage() {
     echo "Rename files in current directory using regex and sed. @AB"
@@ -27,14 +39,11 @@ if [ $# -lt 3 ]; then
     exit 1
 fi
 
-just_do_it=""
-
 while [ $# -gt 0 ];
 do
     case "$1" in
         -s|--file_spec)
             file_spec="$2"
-            echo "file_spec=""$file_spec"
             shift
             ;;
         -p|--replace_pattern)
@@ -53,10 +62,9 @@ do
     shift
 done
 
-echo "Renaming '$file_spec' using the pattern '$replace_pattern'"
-echo "noninteractive=""$noninteractive"
-
 if [[ -z "$noninteractive" ]]; then
+    echo "Renaming '$file_spec' using the pattern '$replace_pattern'"
+
     echo "Presss 'y' to continue, 'n' to abort, followed by Return"
     read -r yn
 
@@ -73,6 +81,6 @@ for x in $file_spec; do
     # echo "new_name='$j'"
 
     mv "$x" "$(dirname "$x")"/"$j";
-    echo "moved ""$x"" to ""$j"
+    printf "[%s] moved \'%s\' to \'%s\'\n" "$me" "$x" "$j"
 done
 
