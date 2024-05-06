@@ -29,6 +29,7 @@ Usage() {
     printf "        rest, leave file extension intact\n"
     printf "       's/(\b[A-Z]|[_][A-Z])([A-Z]+)(\.yml)?/\\\U\\\1\\\L\\\2\\\3/g' -- yaml files, with words separated by spaces and underscores, \n"
     printf "        capitalise the first char of each word in the name and lower-case the rest, leave file extension instact\n"
+    printf "    -i \"interactive\" -- if non-empty, the script asks if you want to go ahead, otherwise it renames files without asking\n"
     echo "    --help"
 }
 
@@ -50,8 +51,8 @@ do
             replace_pattern="$2"
             shift
             ;;
-        -n|--non_interactive)
-            noninteractive="$2"
+        -i|--interactive)
+            interactive="$2"
             shift
             ;;
         -h|--help|*)
@@ -62,7 +63,7 @@ do
     shift
 done
 
-if [[ -z "$noninteractive" ]]; then
+if [[ ! -z "$interactive" ]]; then
     echo "Renaming '$file_spec' using the pattern '$replace_pattern'"
 
     echo "Presss 'y' to continue, 'n' to abort, followed by Return"
@@ -80,7 +81,9 @@ for x in $file_spec; do
     j="$(echo "$base_name" | sed -r "$replace_pattern")"
     # echo "new_name='$j'"
 
-    mv "$x" "$(dirname "$x")"/"$j";
-    printf "[%s] moved \'%s\' to \'%s\'\n" "$me" "$x" "$j"
+    if [[ "$x" != "$j" ]]; then
+       mv "$x" "$(dirname "$x")"/"$j";
+       printf "[%s] moved \'%s\' to \'%s\'\n" "$me" "$x" "$j"
+    fi
 done
 
