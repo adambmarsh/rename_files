@@ -17,10 +17,11 @@ shopt -s lastpipe
 shopt -s nullglob
 
 Usage() {
-    echo "Rename files in current directory using regex and sed. @AB"
+    echo "Rename files in specified directory using regex and sed. @AB"
     echo "Usage:"
-    printf "\n    -s \"input file spec/pattern\", use a literal file name or wildcards, e.g. \'*.mp4\'\n"
-    echo "    -p \"replacement pattern\", examples: "
+    printf "\n    -d directory containing git repo directories to check (defaults to current dir) \n"
+    printf "    -i \"interactive\" -- if non-empty, the script asks if you want to go ahead, otherwise it renames files without asking\n"
+    printf "    -p \"replacement pattern\", examples: \n"
     printf "       's/blah_([a-z_]+\.)/\\\U\\\1/g' -- remove 'blah_' and turn the part in brackets to upper case\n"
     printf "       's/[-]{1,1}[\_a-zA-Z0-9\ \-]+(\.[a-zA-Z0-9]{3,4})$/\1/g' -- remove all from dash to extension in file name, but keep extension\n"
     printf "       's/([[:upper:]])/\\\u\L\\\1/g' -- change all upper case chars to lower case\n"
@@ -29,8 +30,8 @@ Usage() {
     printf "        rest, leave file extension intact\n"
     printf "       's/(\b[A-Z]|[_][A-Z])([A-Z]+)(\.yml)?/\\\U\\\1\\\L\\\2\\\3/g' -- yaml files, with words separated by spaces and underscores, \n"
     printf "        capitalise the first char of each word in the name and lower-case the rest, leave file extension instact\n"
-    printf "    -i \"interactive\" -- if non-empty, the script asks if you want to go ahead, otherwise it renames files without asking\n"
-    echo "    --help"
+    printf "\n    -s \"input file spec/pattern\", use a literal file name or wildcards, e.g. \'*.mp4\'\n"
+    printf "    -h This help text\n"
 }
 
 if [ $# -lt 3 ]; then
@@ -43,16 +44,20 @@ fi
 while [ $# -gt 0 ];
 do
     case "$1" in
-        -s|--file_spec)
-            file_spec="$2"
+        -d|--idir)
+            idir="$2"
+            shift
+            ;;
+        -i|--interactive)
+            interactive="$2"
             shift
             ;;
         -p|--replace_pattern)
             replace_pattern="$2"
             shift
             ;;
-        -i|--interactive)
-            interactive="$2"
+        -s|--file_spec)
+            file_spec="$2"
             shift
             ;;
         -h|--help|*)
@@ -63,7 +68,7 @@ do
     shift
 done
 
-if [[ ! -z "$interactive" ]]; then
+if [[ -n "$interactive" ]]; then
     echo "Renaming '$file_spec' using the pattern '$replace_pattern'"
 
     echo "Presss 'y' to continue, 'n' to abort, followed by Return"
@@ -75,15 +80,54 @@ if [[ ! -z "$interactive" ]]; then
     esac
 fi
 
+if [[ -d "$idir" ]]; then
+    dest_dir="$idir"
+else
+    dest_dir=$(pwd)
+fi
+
+start_dir=$(pwd)
+# printf "\nDEBUG dest_dir=%s\n" "$dest_dir"
+cd "$dest_dir" || exit
+# echo "in directory: $(pwd)"
+
 for x in $file_spec; do
     # echo "old_name='$x'"
     base_name=$(basename "$x")
-    j="$(echo "$base_name" | sed -r "$replace_pattern")"
+    j="$(echo "$base_name" | sed -E "$replace_pattern")"
     # echo "new_name='$j'"
 
     if [[ "$x" != "$j" ]]; then
-       mv "$x" "$(dirname "$x")"/"$j";
-       printf "[%s] moved \'%s\' to \'%s\'\n" "$me" "$x" "$j"
+        mv "$x" "$(dirname "$x")"/"$j";
+        printf "[%s] moved \'%s\' to \'%s\'\n" "$me" "$x" "$j"
     fi
 done
 
+for dir in *; do
+    if [[ ! -d "$dir" ]]; then
+        continue
+    fi
+
+    cd ./"$dir" || exit
+    dir_now=$(pwd)
+
+    # echo "in directory: $dir_now"
+    for x in $file_spec; do
+        # echo "old_name='$x'"
+
+        base_name=$(basename "$x")
+        j="$(echo "$base_name" | sed -E "$replace_pattern")"
+        # echo "new_name='$j'"
+
+        if [[ "$x" != "$j" ]]; then
+            mv "$dir_now"/"$x" "$(dirname "$x")"/"$j";
+            printf "[%s] moved \'%s\' to \'%s\'\n" "$me" "$x" "$j"
+        fi
+    done
+
+    cd .. || exit
+done
+
+if [[ "$start_dir" != "$dest_dir" ]]; then
+    cd "$start_dir" || exit
+fi
